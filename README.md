@@ -27,6 +27,17 @@
   ```
 - Sync findings nightly with `rsync`/S3 and keep secrets in `.env`.
 
+## Deploy on Cloud / VPS
+- Scripted installer: `chmod +x install_vps.sh && ./install_vps.sh`
+- Full guide: [`docs/cloud-deploy.md`](docs/cloud-deploy.md)
+- After install:
+  ```bash
+  source .venv/bin/activate
+  python configure.py
+  python main.py --persona forager
+  ```
+- Optional systemd service snippet included in the doc for always-on agents.
+
 ## Hive Mode & Personas
 - Concept guide: [`docs/hive-mode.md`](docs/hive-mode.md)
 - Sample persona: [`personas/forager.yaml`](personas/forager.yaml)
