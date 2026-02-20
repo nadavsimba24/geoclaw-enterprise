@@ -1,0 +1,23 @@
+<svg width="200" height="200" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Geoclaw bee icon">
+  <defs>
+    <linearGradient id="honey" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFD966" />
+      <stop offset="100%" stop-color="#F4B400" />
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="30" fill="#0f172a" />
+  <circle cx="100" cy="80" r="45" fill="url(#honey)" stroke="#1f2937" stroke-width="4" />
+  <path d="M55 80 h90" stroke="#1f2937" stroke-width="20" stroke-linecap="round" />
+  <path d="M70 60 h60" stroke="#1f2937" stroke-width="14" stroke-linecap="round" />
+  <path d="M65 100 h70" stroke="#1f2937" stroke-width="14" stroke-linecap="round" />
+  <ellipse cx="100" cy="140" rx="26" ry="18" fill="#1f2937" />
+  <path d="M74 150 q-20 20 -30 40" stroke="#F97316" stroke-width="10" stroke-linecap="round" />
+  <path d="M126 150 q20 20 30 40" stroke="#F97316" stroke-width="10" stroke-linecap="round" />
+  <circle cx="70" cy="35" r="8" fill="#fbbf24" />
+  <circle cx="130" cy="35" r="8" fill="#fbbf24" />
+  <circle cx="100" cy="145" r="32" fill="#0ea5e9" stroke="#1f2937" stroke-width="4" />
+  <path d="M80 145 h40" stroke="#1f2937" stroke-width="4" />
+  <path d="M100 125 v40" stroke="#1f2937" stroke-width="4" />
+  <path d="M84 135 q16 -15 32 0" stroke="#1f2937" stroke-width="3" fill="none" />
+  <path d="M84 155 q16 15 32 0" stroke="#1f2937" stroke-width="3" fill="none" />
+</svg>
