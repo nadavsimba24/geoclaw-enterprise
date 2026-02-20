@@ -1,0 +1,7 @@
+#!/bin/bash
+echo "Installing Geoclaw Enterprise..."
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+echo "Done! Run: source .venv/bin/activate && python tui.py"
