@@ -48,20 +48,6 @@ PROVIDERS = {
         "key_hint": "https://openrouter.ai/keys",
         "needs_key": True,
     },
-    "4": {
-        "name": "Ollama (local)",
-        "key_name": "OPENAI_API_KEY",
-        "base_url": "http://localhost:11434/v1",
-        "default_model": "qwen2.5:14b-instruct-q4_K_M",
-        "models": [
-            "qwen2.5:14b-instruct-q4_K_M",
-            "phi4:14b-q4_K_M",
-            "qwen2.5-coder:7b",
-            "deepseek-r1:1.5b",
-        ],
-        "key_hint": "No API key needed — runs locally via Ollama",
-        "needs_key": False,
-    },
     "5": {
         "name": "Custom",
         "key_name": "OPENAI_API_KEY",
@@ -73,11 +59,26 @@ PROVIDERS = {
     },
 }
 
-LOCAL_MODEL_SIZES = {
-    "qwen2.5:14b-instruct-q4_K_M": "~9 GB  ★ Best overall",
-    "phi4:14b-q4_K_M":             "~9 GB  ★ Best reasoning",
-    "qwen2.5-coder:7b":            "~5 GB  Fast code help",
-    "deepseek-r1:1.5b":            "~1 GB  Ultra-fast, minimal",
+LOCAL_MODELS = [
+    # (id,                             size,     tier,   description)
+    ("smollm2:1.7b",                  "~1.0 GB", "TINY",   "Very fast, good quality for size"),
+    ("deepseek-r1:1.5b",             "~1.1 GB", "TINY",   "Reasoning model, great for Q&A"),
+    ("qwen2.5:1.5b",                 "~1.0 GB", "TINY",   "Compact multilingual"),
+    ("llama3.2:3b",                  "~2.0 GB", "LIGHT",  "Meta's latest small model ★"),
+    ("qwen2.5:3b",                   "~1.9 GB", "LIGHT",  "Fast, smart, multilingual"),
+    ("phi3.5:3.8b",                  "~2.2 GB", "LIGHT",  "Microsoft — punches above weight"),
+    ("gemma2:2b",                    "~1.6 GB", "LIGHT",  "Google — clean and reliable"),
+    ("qwen2.5-coder:7b",             "~4.7 GB", "LIGHT",  "Best for coding tasks ★"),
+    ("qwen2.5:14b-instruct-q4_K_M", "~9.0 GB", "MEDIUM", "Best overall quality ★★"),
+    ("phi4:14b-q4_K_M",             "~9.1 GB", "MEDIUM", "Best reasoning & math ★★"),
+    ("llama3.1:8b",                  "~4.7 GB", "MEDIUM", "Meta — great all-rounder"),
+    ("mistral:7b",                   "~4.1 GB", "MEDIUM", "Fast, instruction-tuned"),
+]
+
+TIER_COLORS = {
+    "TINY":   "yellow",
+    "LIGHT":  "green",
+    "MEDIUM": "cyan",
 }
 
 
@@ -174,30 +175,40 @@ def configure_ollama():
             return
 
     installed = get_installed_ollama_models()
-    console.print("\n  [blue]Available local models:[/blue]\n")
+    console.print("\n  [bold white]Choose a local model — pick based on your available RAM:[/bold white]\n")
 
     table = Table(show_header=True, box=None, padding=(0, 2))
-    table.add_column("#", style="dim")
-    table.add_column("Model")
-    table.add_column("Size / Notes")
-    table.add_column("Status")
+    table.add_column("#",      style="dim", width=4)
+    table.add_column("Model",  width=36)
+    table.add_column("Size",   width=9)
+    table.add_column("Tier",   width=8)
+    table.add_column("Notes")
+    table.add_column("",       width=14)
 
-    recommended = list(LOCAL_MODEL_SIZES.keys())
-    for i, model in enumerate(recommended, 1):
-        status = "[green]✓ installed[/green]" if model in installed else "[dim]not downloaded[/dim]"
-        table.add_row(str(i), model, LOCAL_MODEL_SIZES[model], status)
-    table.add_row("5", "Custom", "enter any Ollama model name", "")
+    current_tier = None
+    for i, (mid, size, tier, desc) in enumerate(LOCAL_MODELS, 1):
+        if tier != current_tier:
+            current_tier = tier
+            ram_needed = {"TINY": "< 2 GB RAM", "LIGHT": "2–6 GB RAM", "MEDIUM": "8–16 GB RAM"}[tier]
+            table.add_row("", f"[bold {TIER_COLORS[tier]}]── {tier}  ({ram_needed}) ──[/]", "", "", "", "")
+        status = f"[green]✓ installed[/green]" if mid in installed else "[dim]not downloaded[/dim]"
+        table.add_row(str(i), f"[{TIER_COLORS[tier]}]{mid}[/]", size, tier, desc, status)
+
+    table.add_row("", "[magenta]── CUSTOM ──[/]", "", "", "", "")
+    table.add_row(str(len(LOCAL_MODELS) + 1), "[magenta]Custom[/]", "", "", "Enter any Ollama model name", "")
 
     console.print(table)
     if installed:
-        console.print(f"\n  [dim]All installed: {', '.join(installed)}[/dim]")
+        console.print(f"\n  [dim]Already on your machine: {', '.join(installed)}[/dim]")
 
-    choice = Prompt.ask("\n  Select model", default="1")
+    default_idx = next((str(i) for i, (m, *_) in enumerate(LOCAL_MODELS, 1)
+                        if m == "qwen2.5:14b-instruct-q4_K_M"), "9")
+    choice = Prompt.ask("\n  Select model", default=default_idx)
 
     try:
         idx = int(choice) - 1
-        if 0 <= idx < len(recommended):
-            model = recommended[idx]
+        if 0 <= idx < len(LOCAL_MODELS):
+            model = LOCAL_MODELS[idx][0]
         else:
             model = Prompt.ask("  Model name")
     except ValueError:

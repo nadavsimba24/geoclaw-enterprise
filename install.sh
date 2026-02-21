@@ -12,6 +12,34 @@ warn()    { printf "\033[0;33m[Geoclaw]\033[0m %s\n" "$1"; }
 error()   { printf "\033[0;31m[Geoclaw]\033[0m %s\n" "$1" >&2; }
 line()    { printf "\033[0;34m%s\033[0m\n" "──────────────────────────────────────────"; }
 
+# ── banner ─────────────────────────────────────────────────────────────────────
+print_banner() {
+  local B="\033[0;34m"   # blue
+  local G="\033[0;32m"   # green
+  local Y="\033[0;33m"   # yellow
+  local C="\033[0;36m"   # cyan
+  local W="\033[1;37m"   # white bold
+  local R="\033[0m"      # reset
+
+  printf "\n"
+  printf "${B}  ╔══════════════════════════════════════════════════╗${R}\n"
+  printf "${B}  ║${R}                                                  ${B}║${R}\n"
+  printf "${B}  ║${R}  ${B}  /\_____        _____/\ ${R}                       ${B}║${R}\n"
+  printf "${B}  ║${R}  ${B} /  🌍  \______/  🐝  \ ${R}                       ${B}║${R}\n"
+  printf "${B}  ║${R}  ${B}/    \__/        \__/   \${R}  ${W}GEOCLAW${R}            ${B}║${R}\n"
+  printf "${B}  ║${R}  ${B}\   /  \  >>==>  /  \   /${R}  ${W}ENTERPRISE${R}         ${B}║${R}\n"
+  printf "${B}  ║${R}  ${B} \ /    \________/    \ /${R}  ${C}v3.0${R}               ${B}║${R}\n"
+  printf "${B}  ║${R}  ${B}  X      |      |      X${R}                       ${B}║${R}\n"
+  printf "${B}  ║${R}  ${B} / \     |      |     / \${R}                       ${B}║${R}\n"
+  printf "${B}  ║${R}  ${B}/   \____|      |____/   \${R}                      ${B}║${R}\n"
+  printf "${B}  ║${R}                                                  ${B}║${R}\n"
+  printf "${B}  ║${R}  ${Y}  \"Many Claws, One Hive Mind\"${R}                   ${B}║${R}\n"
+  printf "${B}  ║${R}  ${G}  Autonomous Geo-Intelligence & OSINT Agents${R}   ${B}║${R}\n"
+  printf "${B}  ║${R}                                                  ${B}║${R}\n"
+  printf "${B}  ╚══════════════════════════════════════════════════╝${R}\n"
+  printf "\n"
+}
+
 MINIMAL=false
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -19,6 +47,8 @@ while [[ $# -gt 0 ]]; do
     *) error "Unknown option: $1"; exit 1 ;;
   esac
 done
+
+print_banner
 
 # ── python check ───────────────────────────────────────────────────────────────
 if ! command -v python3 &>/dev/null; then
@@ -183,34 +213,56 @@ elif [[ "$MODE_CHOICE" == "2" ]]; then
   fi
 
   success "Ollama is ready."
-  echo ""
-  echo "  Recommended local models for GeoClaw:"
-  echo ""
-  echo "  [1] qwen2.5:14b-instruct-q4_K_M  — Best overall  (~9 GB) ★ Recommended"
-  echo "  [2] phi4:14b-q4_K_M              — Best reasoning (~9 GB)"
-  echo "  [3] qwen2.5-coder:7b             — Fast code help (~5 GB)"
-  echo "  [4] deepseek-r1:1.5b             — Ultra-fast, minimal (~1 GB)"
-  echo "  [5] Custom                       — Enter a model name manually"
-  echo ""
 
   # show already-installed models
   INSTALLED=$(ollama list 2>/dev/null | tail -n +2 | awk '{print $1}' | tr '\n' ' ')
-  if [[ -n "$INSTALLED" ]]; then
-    info "Already installed on this machine: $INSTALLED"
-  fi
+
+  echo ""
+  printf "\033[1;37m  Choose a local model — pick based on your available RAM:\033[0m\n"
+  echo ""
+  printf "\033[0;33m  ── TINY  (< 2 GB RAM needed) — fast, basic quality ──────────────────\033[0m\n"
+  echo "  [1] smollm2:1.7b        ~1.0 GB   Good quality for its size, very fast"
+  echo "  [2] deepseek-r1:1.5b    ~1.1 GB   Reasoning model, great for Q&A"
+  echo "  [3] qwen2.5:1.5b        ~1.0 GB   Alibaba's compact multilingual model"
+  echo ""
+  printf "\033[0;32m  ── LIGHT (2–6 GB RAM needed) — good balance ─────────────────────────\033[0m\n"
+  echo "  [4] llama3.2:3b         ~2.0 GB   Meta's latest small model, very capable"
+  echo "  [5] qwen2.5:3b          ~1.9 GB   Fast, smart, multilingual"
+  echo "  [6] phi3.5:3.8b         ~2.2 GB   Microsoft — punches above its weight"
+  echo "  [7] gemma2:2b           ~1.6 GB   Google — clean, fast, reliable"
+  echo "  [8] qwen2.5-coder:7b    ~4.7 GB   Best for coding tasks at this size  ★"
+  echo ""
+  printf "\033[0;36m  ── MEDIUM (8–16 GB RAM needed) — best quality ───────────────────────\033[0m\n"
+  echo "  [9] qwen2.5:14b-instruct-q4_K_M  ~9 GB   Best overall quality  ★★"
+  echo " [10] phi4:14b-q4_K_M              ~9 GB   Best reasoning & math  ★★"
+  echo " [11] llama3.1:8b                  ~4.7 GB  Meta — great all-rounder"
+  echo " [12] mistral:7b                   ~4.1 GB  Fast, instruction-tuned"
+  echo ""
+  printf "\033[0;35m  [13] Custom — enter any Ollama model name manually\033[0m\n"
   echo ""
 
-  read -rp "  Select model [1-5]: " MODEL_CHOICE
-  MODEL_CHOICE=${MODEL_CHOICE:-1}
+  if [[ -n "$INSTALLED" ]]; then
+    printf "\033[0;32m  Already installed: %s\033[0m\n" "$INSTALLED"
+    echo ""
+  fi
+
+  read -rp "  Select model [1-13]: " MODEL_CHOICE
+  MODEL_CHOICE=${MODEL_CHOICE:-9}
 
   case "$MODEL_CHOICE" in
-    1) LOCAL_MODEL="qwen2.5:14b-instruct-q4_K_M" ;;
-    2) LOCAL_MODEL="phi4:14b-q4_K_M" ;;
-    3) LOCAL_MODEL="qwen2.5-coder:7b" ;;
-    4) LOCAL_MODEL="deepseek-r1:1.5b" ;;
-    5)
-      read -rp "  Enter model name (e.g. llama3.2:3b): " LOCAL_MODEL
-      ;;
+    1)  LOCAL_MODEL="smollm2:1.7b" ;;
+    2)  LOCAL_MODEL="deepseek-r1:1.5b" ;;
+    3)  LOCAL_MODEL="qwen2.5:1.5b" ;;
+    4)  LOCAL_MODEL="llama3.2:3b" ;;
+    5)  LOCAL_MODEL="qwen2.5:3b" ;;
+    6)  LOCAL_MODEL="phi3.5:3.8b" ;;
+    7)  LOCAL_MODEL="gemma2:2b" ;;
+    8)  LOCAL_MODEL="qwen2.5-coder:7b" ;;
+    9)  LOCAL_MODEL="qwen2.5:14b-instruct-q4_K_M" ;;
+    10) LOCAL_MODEL="phi4:14b-q4_K_M" ;;
+    11) LOCAL_MODEL="llama3.1:8b" ;;
+    12) LOCAL_MODEL="mistral:7b" ;;
+    13) read -rp "  Enter model name (e.g. llama3.2:3b): " LOCAL_MODEL ;;
     *)
       warn "Invalid choice, defaulting to qwen2.5:14b-instruct-q4_K_M"
       LOCAL_MODEL="qwen2.5:14b-instruct-q4_K_M"
