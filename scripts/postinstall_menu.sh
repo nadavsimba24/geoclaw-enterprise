@@ -1,14 +1,18 @@
 #!/usr/bin/env bash
-# Guided menu for configuring Geoclaw after install
+# GeoClaw post-install configuration menu
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 ENV_FILE="$PROJECT_ROOT/.env"
-CONFIG_FILE="$PROJECT_ROOT/geoclaw.config.yml"
 VENV_BIN="$PROJECT_ROOT/.venv/bin"
 PYTHON_BIN="$VENV_BIN/python3"
 
-if [[ -x "$VENV_BIN/activate" ]]; then
+info()    { printf "\033[0;34m[Geoclaw]\033[0m %s\n" "$1"; }
+success() { printf "\033[0;32m[Geoclaw]\033[0m %s\n" "$1"; }
+warn()    { printf "\033[0;33m[Geoclaw]\033[0m %s\n" "$1"; }
+
+# activate venv if available
+if [[ -f "$VENV_BIN/activate" ]]; then
   # shellcheck disable=SC1090
   source "$VENV_BIN/activate"
 fi
@@ -20,85 +24,101 @@ ensure_env() {
     else
       touch "$ENV_FILE"
     fi
-    echo "Created $ENV_FILE"
+    info "Created $ENV_FILE"
   fi
 }
 
-configure_keys() {
-  if [[ -f "$PROJECT_ROOT/configure.py" ]]; then
-    echo "Running python configure.py ..."
-    "$PYTHON_BIN" "$PROJECT_ROOT/configure.py"
-  else
-    echo "configure.py missing. Skipping."
-  fi
-}
-
-update_model() {
+write_env() {
   ensure_env
-  read -rp "Model provider [openai]: " provider
-  provider=${provider:-openai}
-  read -rp "Model name [$1]: " model
-  model=${model:-$1}
-  python3 - "$ENV_FILE" "$provider" "$model" <<'PY'
-import sys
-from pathlib import Path
-env_path, provider, model = Path(sys.argv[1]), sys.argv[2], sys.argv[3]
-lines = []
-if env_path.exists():
-    lines = env_path.read_text().splitlines()
-kv = {k: v for line in lines if (line.strip() and not line.strip().startswith('#'))
-      for k, v in [line.split('=', 1)]}
-kv['GEOCLAW_MODEL_PROVIDER'] = provider
-kv['GEOCLAW_MODEL_NAME'] = model
-if 'OPENAI_MODEL' in kv:
-    kv['OPENAI_MODEL'] = model
-contents = '\n'.join(f"{k}={v}" for k, v in kv.items()) + '\n'
-env_path.write_text(contents)
-print(f"Updated {env_path} with provider={provider}, model={model}")
-PY
+  local key="$1" val="$2"
+  if grep -q "^${key}=" "$ENV_FILE" 2>/dev/null; then
+    sed -i.bak "s|^${key}=.*|${key}=${val}|" "$ENV_FILE" && rm -f "${ENV_FILE}.bak"
+  else
+    echo "${key}=${val}" >> "$ENV_FILE"
+  fi
 }
 
-manage_skills() {
-  if [[ ! -f "$CONFIG_FILE" ]]; then
-    echo "Missing $CONFIG_FILE"
+configure_wizard() {
+  info "Launching configuration wizard..."
+  "$PYTHON_BIN" "$PROJECT_ROOT/configure.py"
+}
+
+setup_local_model() {
+  if ! command -v ollama &>/dev/null; then
+    warn "Ollama is not installed."
+    echo ""
+    echo "  Install it first:"
+    echo "    macOS:  brew install ollama"
+    echo "    Linux:  curl -fsSL https://ollama.com/install.sh | sh"
     return
   fi
-  read -rp "Install recommended skill bundle (gemini, weather, nano-pdf, openai-whisper)? [Y/n] " ans
-  ans=${ans:-Y}
-  if [[ $ans == [Nn]* ]]; then
-    return
+
+  echo ""
+  echo "  Recommended local models:"
+  echo "  [1] qwen2.5:14b-instruct-q4_K_M  — Best overall  (~9 GB) ★"
+  echo "  [2] phi4:14b-q4_K_M              — Best reasoning (~9 GB)"
+  echo "  [3] qwen2.5-coder:7b             — Fast code help (~5 GB)"
+  echo "  [4] deepseek-r1:1.5b             — Ultra-fast     (~1 GB)"
+  echo ""
+  INSTALLED=$(ollama list 2>/dev/null | tail -n +2 | awk '{print $1}' | tr '\n' ' ')
+  [[ -n "$INSTALLED" ]] && info "Already installed: $INSTALLED"
+  echo ""
+  read -rp "  Select [1-4]: " choice
+
+  case "$choice" in
+    1) MODEL="qwen2.5:14b-instruct-q4_K_M" ;;
+    2) MODEL="phi4:14b-q4_K_M" ;;
+    3) MODEL="qwen2.5-coder:7b" ;;
+    4) MODEL="deepseek-r1:1.5b" ;;
+    *) read -rp "  Enter model name: " MODEL ;;
+  esac
+
+  if ! ollama list 2>/dev/null | grep -q "^${MODEL}"; then
+    info "Downloading $MODEL..."
+    ollama pull "$MODEL"
+  else
+    success "$MODEL already installed."
   fi
-  "$PYTHON_BIN" - <<'PY'
-from pathlib import Path
-import yaml
-cfg_path = Path("geoclaw.config.yml")
-cfg = yaml.safe_load(cfg_path.read_text())
-skills = cfg.get('agent', {}).get('skills') or []
-recommended = ["gemini", "weather", "nano-pdf", "openai-whisper"]
-for name in recommended:
-    if name not in skills:
-        skills.append(name)
-cfg['agent']['skills'] = skills
-cfg_path.write_text(yaml.safe_dump(cfg, sort_keys=False, allow_unicode=True))
-print("Updated agent.skills with recommended bundle.")
-print("Reminder: run 'openclaw skills install <skill>.skill' for any external bundles.")
-PY
+
+  write_env "OPENAI_API_KEY" "ollama"
+  write_env "BASE_URL"       "http://localhost:11434/v1"
+  write_env "MODEL_NAME"     "$MODEL"
+  write_env "GEOCLAW_MODEL_PROVIDER" "ollama"
+  success "Local model ready: $MODEL"
+}
+
+show_status() {
+  echo ""
+  if [[ -f "$ENV_FILE" ]]; then
+    info "Current .env:"
+    while IFS='=' read -r key val; do
+      [[ -z "$key" || "$key" == \#* ]] && continue
+      if [[ "$key" == *KEY* && "$val" != "ollama" && "$val" != "YOUR_API_KEY_HERE" ]]; then
+        val="****${val: -4}"
+      fi
+      printf "  %-30s %s\n" "$key" "$val"
+    done < "$ENV_FILE"
+  else
+    warn ".env not found."
+  fi
+  echo ""
 }
 
 while true; do
-  cat <<'MENU'
-================ Geoclaw Post-Install ================
-1) Configure API keys (python configure.py)
-2) Update default model/provider (.env)
-3) Install recommended skill bundle (updates geoclaw.config.yml)
-4) Skip / finish
-MENU
-  read -rp "Select option [1-4]: " choice
+  echo ""
+  echo "════════════ GeoClaw Configuration ════════════"
+  echo " [1] Full setup wizard (cloud API or local model)"
+  echo " [2] Quick: set up local model via Ollama"
+  echo " [3] Show current config (.env)"
+  echo " [4] Exit"
+  echo "═══════════════════════════════════════════════"
+  read -rp " Select [1-4]: " choice
+
   case "$choice" in
-    1) configure_keys ;;
-    2) update_model "gpt-4o-mini" ;;
-    3) manage_skills ;;
-    4) echo "Post-install complete."; break ;;
-    *) echo "Invalid option" ;;
+    1) configure_wizard ;;
+    2) setup_local_model ;;
+    3) show_status ;;
+    4) success "Done! Run: python tui.py"; break ;;
+    *) warn "Invalid option" ;;
   esac
 done
