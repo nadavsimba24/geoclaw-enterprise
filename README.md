@@ -12,18 +12,23 @@
 
 ## Quick Start
 1. **Install:**
-   - macOS/Linux: `./install.sh`
+   - macOS/Linux: `./install.sh` (post-install wizard lets you skip/return later)
    - Windows: Double-click `install.bat`
-2. **Configure:** `python configure.py` (stores API keys in `.env`)
+2. **Configure via menu:** Run `scripts/postinstall_menu.sh` any time to:
+   - enter API keys (`python configure.py`)
+   - set model/provider in `.env`
+   - add the recommended skill bundle
 3. **Run:** `python tui.py` (Chat + Geo-Intel tabs)
 
 ## Deploy on Edge Devices
 - Follow [`docs/edge-deploy.md`](docs/edge-deploy.md) for low-power tips.
 - Example minimal boot:
   ```bash
-  ./install.sh --minimal
+  git clone https://github.com/nadavsimba24/geoclaw-enterprise.git
+  cd geoclaw-enterprise
+  ./install.sh --minimal   # skip wizard now, run scripts/postinstall_menu.sh later
   source .venv/bin/activate
-  OPENAI_MODEL=gpt-4o-mini python main.py --skills-dir skills/forager
+  python main.py --skills-dir skills/forager
   ```
 - Sync findings nightly with `rsync`/S3 and keep secrets in `.env`.
 
@@ -33,7 +38,7 @@
 - After install:
   ```bash
   source .venv/bin/activate
-  python configure.py
+  scripts/postinstall_menu.sh   # configure keys, models, skills
   python main.py --persona forager
   ```
 - Optional systemd service snippet included in the doc for always-on agents.
