@@ -2,6 +2,8 @@
 
 *Many claws, one hive mind.* Geoclaw Enterprise is a minimalist-but-powerful AI agent framework for Business Intelligence (BI) and Open Source Intelligence (OSINT). Agents (“bees”) run anywhere—from rugged tablets to cloud VMs—and weave their findings onto a shared map (the hive).
 
+https://geoclawapp.netlify.app/
+
 ![Geoclaw bee icon](assets/bee_claw_globe.svg)
 
 ## Highlights
